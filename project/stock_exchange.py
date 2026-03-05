@@ -7,7 +7,10 @@ class Order:
         self.side = side
         self.stock_name = stock_name
         self.type_order = type_order
-        self.price = price
+        self.price = (
+            price if type_order == "LMT" else (float("inf") if side == "BUY" else 0.0)
+        )
+        self.execution_price = None
         self.quantity = quantity
         self.filled_quantity = 0
         self.status = "PENDING"
@@ -20,8 +23,6 @@ class Order:
             self.status = "PARTIAL"
         else:
             self.status = "FILLED"
-        if self.type_order == "MKT" and self.status == "FILLED":
-            self.price = self.price
 
     def __str__(self):
         if self.type_order == "LMT":
@@ -36,8 +37,13 @@ class Order:
                 return f"Вы разместили рыночный ордер на покупку {self.quantity} акций {self.stock_name}"
 
     def __repr__(self):
-        price_str = f"${self.price:.2f}" if self.price is not None else "MKT"
-        return f"{self.id}. {self.stock_name} {self.type_order} {self.side} {price_str} {self.filled_quantity}/{self.quantity} {self.status}"
+        if self.execution_price is not None:
+            price_str = f" ${self.execution_price:.2f}"
+        elif self.type_order == "LMT":
+            price_str = f" ${self.price:.2f}"
+        else:
+            price_str = ""
+        return f"{self.id}. {self.stock_name} {self.type_order} {self.side}{price_str} {self.filled_quantity}/{self.quantity} {self.status}"
 
 
 class OrderBook:
@@ -62,43 +68,42 @@ class OrderBook:
         best_price = min(self.order_book["asks"].keys())
         return self.order_book["asks"][best_price][0]
 
-    # def trade_volume(self, order):
-    #     return min(
-    #         order.quantity - order.filled_quantity,
-    #         best_ask.quantity - best_ask.filled_quantity,
-    #     )
+    def _trade_volume(self, incoming_order, resting_order):
+        return min(
+            incoming_order.quantity - incoming_order.filled_quantity,
+            resting_order.quantity - resting_order.filled_quantity,
+        )
+
+    def _remove_order(self, side, order):
+        book_side = self.order_book[side]
+        book_side[order.price].remove(order)
+        if not book_side[order.price]:
+            del book_side[order.price]
 
     def match(self, order):
         while order.filled_quantity < order.quantity:
-
-            # if order.type_order == "MKT":
-            #     if order.side == "BUY":
-            #         order.price = best_ask.price
-            #     else:
-            #         order.price = best_bid.price
-            ################
             if order.side == "BUY":
                 best_ask = self.best_asks()
                 if not best_ask:
                     break
-                if best_ask and (
-                    order.type_order == "MKT" or order.price >= best_ask.price
-                ):
-                    trade_volume = min(
-                        order.quantity - order.filled_quantity,
-                        best_ask.quantity - best_ask.filled_quantity,
-                    )
-                    order.filled_quantity += trade_volume
-                    best_ask.filled_quantity += trade_volume
 
-                    if order.type_order == "MKT":
-                        order.price = best_ask.price
+                if order.type_order == "MKT" or order.price >= best_ask.price:
+                    volume = self._trade_volume(order, best_ask)
+                    order.filled_quantity += volume
+                    best_ask.filled_quantity += volume
+
+                    trade_price = (
+                        best_ask.price if best_ask.type_order == "LMT" else order.price
+                    )
+                    order.execution_price = trade_price
+                    best_ask.execution_price = trade_price
+
                     best_ask.update_status()
                     order.update_status()
+
                     if best_ask.status == "FILLED":
-                        self.order_book["asks"][best_ask.price].remove(best_ask)
-                        if not self.order_book["asks"][best_ask.price]:
-                            del self.order_book["asks"][best_ask.price]
+                        self._remove_order("asks", best_ask)
+
                     self.order_book["last_price"] = best_ask.price
                 else:
                     break
@@ -106,24 +111,24 @@ class OrderBook:
                 best_bid = self.best_bids()
                 if not best_bid:
                     break
-                if best_bid and (
-                    order.type_order == "MKT" or order.price <= best_bid.price
-                ):
-                    trade_volume = min(
-                        order.quantity - order.filled_quantity,
-                        best_bid.quantity - best_bid.filled_quantity,
-                    )
-                    order.filled_quantity += trade_volume
-                    best_bid.filled_quantity += trade_volume
 
-                    if order.type_order == "MKT":
-                        order.price = best_bid.price
+                if order.type_order == "MKT" or order.price <= best_bid.price:
+                    volume = self._trade_volume(order, best_bid)
+                    order.filled_quantity += volume
+                    best_bid.filled_quantity += volume
+
+                    trade_price = (
+                        best_bid.price if best_bid.type_order == "LMT" else order.price
+                    )
+                    order.execution_price = trade_price
+                    best_bid.execution_price = trade_price
+
                     best_bid.update_status()
                     order.update_status()
+
                     if best_bid.status == "FILLED":
-                        self.order_book["bids"][best_bid.price].remove(best_bid)
-                        if not self.order_book["bids"][best_bid.price]:
-                            del self.order_book["bids"][best_bid.price]
+                        self._remove_order("bids", best_bid)
+
                     self.order_book["last_price"] = best_bid.price
                 else:
                     break
@@ -149,21 +154,16 @@ class StockExchange:
         self.next_order_id = 1
 
     def place_order(self, side, stock_name, type_order, price, quantity):
-        if type_order == "MKT":
-            if side == "BUY":
-                price = float("inf")
-            else:
-                price = 0.0
-
         order = Order(self.next_order_id, side, stock_name, type_order, price, quantity)
         self.orders[self.next_order_id] = order
         if stock_name not in self.exchange:
             self.exchange[stock_name] = OrderBook()
-
         order_book = self.exchange[stock_name]
+
         order_book.match(order)
         if order.status != "FILLED":
-            self.exchange[stock_name].add_order(order)
+            order_book.add_order(order)
+
         self.next_order_id += 1
         return order
 
@@ -190,6 +190,12 @@ class StockExchange:
             print(self.quote(stock_name))
         elif parts[0] == "QUIT":
             print("No output")
+        elif parts[0] == "BOOK" and len(parts) > 1:
+            stock_name = parts[1]
+            if stock_name in self.exchange:
+                print(str(self.exchange[stock_name]))
+            else:
+                print(f"No data for {stock_name}")
 
     def get_orders(self):
         return " ".join([repr(order) for order in self.orders.values()])
