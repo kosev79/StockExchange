@@ -43,7 +43,10 @@ class Order:
             price_str = f" ${self.price:.2f}"
         else:
             price_str = ""
-        return f"{self.id}. {self.stock_name} {self.type_order} {self.side}{price_str} {self.filled_quantity}/{self.quantity} {self.status}"
+        return (
+            f"{self.id}. {self.stock_name} {self.type_order} {self.side}"
+            f"{price_str} {self.filled_quantity}/{self.quantity} {self.status}"
+        )
 
 
 class OrderBook:
@@ -80,58 +83,43 @@ class OrderBook:
         if not book_side[order.price]:
             del book_side[order.price]
 
+    def _get_opposite(self, order):
+        if order.side == "BUY":
+            return self.best_asks(), "asks"
+        return self.best_bids(), "bids"
+
     def match(self, order):
         while order.filled_quantity < order.quantity:
-            if order.side == "BUY":
-                best_ask = self.best_asks()
-                if not best_ask:
-                    break
+            best_order, book_side = self._get_opposite(order)
+            if not best_order:
+                break
 
-                if order.type_order == "MKT" or order.price >= best_ask.price:
-                    volume = self._trade_volume(order, best_ask)
-                    order.filled_quantity += volume
-                    best_ask.filled_quantity += volume
+            price_match = (
+                order.type_order == "MKT"
+                or (order.side == "BUY" and order.price >= best_order.price)
+                or (order.side == "SELL" and order.price <= best_order.price)
+            )
 
-                    trade_price = (
-                        best_ask.price if best_ask.type_order == "LMT" else order.price
-                    )
-                    order.execution_price = trade_price
-                    best_ask.execution_price = trade_price
+            if price_match:
+                volume = self._trade_volume(order, best_order)
+                order.filled_quantity += volume
+                best_order.filled_quantity += volume
 
-                    best_ask.update_status()
-                    order.update_status()
+                trade_price = (
+                    best_order.price if best_order.type_order == "LMT" else order.price
+                )
+                order.execution_price = trade_price
+                best_order.execution_price = trade_price
 
-                    if best_ask.status == "FILLED":
-                        self._remove_order("asks", best_ask)
+                best_order.update_status()
+                order.update_status()
 
-                    self.order_book["last_price"] = best_ask.price
-                else:
-                    break
+                if best_order.status == "FILLED":
+                    self._remove_order(book_side, best_order)
+
+                self.order_book["last_price"] = trade_price
             else:
-                best_bid = self.best_bids()
-                if not best_bid:
-                    break
-
-                if order.type_order == "MKT" or order.price <= best_bid.price:
-                    volume = self._trade_volume(order, best_bid)
-                    order.filled_quantity += volume
-                    best_bid.filled_quantity += volume
-
-                    trade_price = (
-                        best_bid.price if best_bid.type_order == "LMT" else order.price
-                    )
-                    order.execution_price = trade_price
-                    best_bid.execution_price = trade_price
-
-                    best_bid.update_status()
-                    order.update_status()
-
-                    if best_bid.status == "FILLED":
-                        self._remove_order("bids", best_bid)
-
-                    self.order_book["last_price"] = best_bid.price
-                else:
-                    break
+                break
         order.update_status()
 
     def __str__(self):
@@ -193,12 +181,12 @@ class StockExchange:
         elif parts[0] == "BOOK" and len(parts) > 1:
             stock_name = parts[1]
             if stock_name in self.exchange:
-                print(str(self.exchange[stock_name]))
+                print(self.exchange[stock_name])
             else:
                 print(f"No data for {stock_name}")
 
     def get_orders(self):
-        return " ".join([repr(order) for order in self.orders.values()])
+        return " ".join(repr(order) for order in self.orders.values())
 
     def quote(self, stock_name):
         if stock_name in self.exchange:
