@@ -1,6 +1,9 @@
 import time
 
 
+COMMANDS = {"BUY", "SELL", "VIEW", "QUOTE", "QUIT", "BOOK"}
+
+
 class Order:
     def __init__(self, id, side, stock_name, type_order, price=None, quantity=None):
         self.id = id
@@ -155,11 +158,74 @@ class StockExchange:
         self.next_order_id += 1
         return order
 
-    def process_command(self, command):
+    def validate_command(self, command):
         parts = command.split()
         if not parts:
-            print("Invalid command")
-            return
+            return False, "Invalid command"
+
+        if parts[0] not in COMMANDS:
+            return False, "Invalid command"
+
+        if parts[0] == "VIEW":
+            if len(parts) != 2 or parts[1] != "ORDERS":
+                return False, "User orders format: VIEW ORDERS"
+
+        if parts[0] == "QUOTE" and len(parts) != 2:
+            return False, "Quote format: QUOTE <stock_name>"
+
+        if parts[0] == "QUIT" and len(parts) != 1:
+            return False, "Quit format: QUIT"
+
+        if parts[0] == "BOOK" and len(parts) != 2:
+            return False, "Book format: BOOK <stock_name>"
+
+        if parts[0] in ("BUY", "SELL"):
+            if len(parts) < 4:
+                return False, "Invalid command"
+
+            type_order = parts[2]
+            stock = parts[1]
+            if not stock.isalpha() or not stock.isupper():
+                return False, "Stock name must be alphabetic and uppercase"
+            if type_order not in ("MKT", "LMT"):
+                return False, "Invalid order type, must be MKT or LMT"
+
+            if type_order == "MKT":
+                if len(parts) != 4:
+                    return (
+                        False,
+                        "Market order format: BUY|SELL <stock_name> MKT <quantity>",
+                    )
+                try:
+                    quantity = int(parts[3])
+                    if quantity <= 0:
+                        return False, "Quantity must be a positive integer"
+                except ValueError:
+                    return False, "Invalid quantity"
+
+            if type_order == "LMT":
+                if len(parts) != 5:
+                    return (
+                        False,
+                        "Limit order format: BUY|SELL <stock_name> LMT $<price> <quantity>",
+                    )
+                try:
+                    price = float(parts[3].replace("$", ""))
+                    if price <= 0:
+                        return False, "Price must be a positive number"
+                except ValueError:
+                    return False, "Invalid price"
+                try:
+                    quantity = int(parts[4])
+                    if quantity <= 0:
+                        return False, "Quantity must be a positive integer"
+                except ValueError:
+                    return False, "Invalid quantity"
+        return True, None
+
+    def process_command(self, command):
+        parts = command.split()
+
         if parts[0] in ("BUY", "SELL"):
             stock_name = parts[1]
             type_order = parts[2]
@@ -176,8 +242,6 @@ class StockExchange:
         elif parts[0] == "QUOTE" and len(parts) > 1:
             stock_name = parts[1]
             print(self.quote(stock_name))
-        elif parts[0] == "QUIT":
-            print("No output")
         elif parts[0] == "BOOK" and len(parts) > 1:
             stock_name = parts[1]
             if stock_name in self.exchange:
@@ -205,13 +269,21 @@ class StockExchange:
 
 
 def start_trading():
-    action = [None]
     stock_exchange = StockExchange()
-    while action[0] != "QUIT":
-        action = input("Action: ").split()
-        order = stock_exchange.process_command(" ".join(action))
+    while True:
+        command = input("Action: ")
+        valid, error = stock_exchange.validate_command(command)
+        parts = command.split()
+        if not valid:
+            print(error)
+            continue
+        if parts[0] == "QUIT":
+            print("No output")
+            break
+
+        order = stock_exchange.process_command(command)
         if order:
-            print(str(order))
+            print(order)
 
 
 if __name__ == "__main__":
