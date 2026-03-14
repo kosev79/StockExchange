@@ -49,4 +49,4 @@ QUIT
 #### Запуск программы
 
 ```bash
-python stock_exchange.py
+python project/main.py
