@@ -129,8 +129,16 @@ class StockExchange:
             best_bid = order_book.best_bids()
             best_ask = order_book.best_asks()
             last_price = order_book.last_price
-            bid_str = f"BID: ${best_bid.price:.2f}" if best_bid else "BID: N/A"
-            ask_str = f"ASK: ${best_ask.price:.2f}" if best_ask else "ASK: N/A"
+            bid_str = (
+                f"BID: ${best_bid.price:.2f}"
+                if best_bid and best_bid.price is not None
+                else "BID: N/A"
+            )
+            ask_str = (
+                f"ASK: ${best_ask.price:.2f}"
+                if best_ask and best_ask.price is not None
+                else "ASK: N/A"
+            )
             last_price_str = (
                 f"LAST: ${last_price:.2f}" if last_price is not None else "LAST: N/A"
             )

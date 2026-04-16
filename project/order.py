@@ -18,8 +18,8 @@ class Order:
     def __post_init__(self):
         self.side = self.side.upper()
         self.type_order = self.type_order.upper()
-        if self.price is None:
-            self.price = float("inf") if self.side == "BUY" else 0.0
+        if self.type_order == "MKT":
+            self.price = None
 
     def update_status(self):
         if self.filled_quantity == 0:
@@ -33,8 +33,8 @@ class Order:
         side = "покупку" if self.side == "BUY" else "продажу"
         if self.type_order == "LMT":
             return (
-                f"Вы разместили лимитный ордер на {side}"
-                f"{self.quantity} акций {self.stock_name}"
+                f"Вы разместили лимитный ордер на {side} "
+                f"{self.quantity} акций {self.stock_name} "
                 f"по цене ${self.price:.2f} за акцию."
             )
         else:

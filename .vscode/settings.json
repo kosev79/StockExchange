@@ -10,5 +10,5 @@
     "python.analysis.autoImportCompletions": true,
     // "python.analysis.inlayHints.variableTypes": true,
     // "python.analysis.inlayHints.functionReturnTypes": true,
-    "files.autoSave": "onFocusChange",
+    "files.autoSave": "onFocusChange"
 }

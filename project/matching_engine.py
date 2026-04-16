@@ -4,11 +4,13 @@ from order_book import OrderBook
 
 class MatchEngine:
     def _price_match(self, order, best_order):
-        return (
-            order.type_order == "MKT"
-            or (order.side == "BUY" and order.price >= best_order.price)
-            or (order.side == "SELL" and order.price <= best_order.price)
-        )
+        if order.type_order == "MKT" or best_order.type_order == "MKT":
+            return True
+        if order.side == "BUY" and best_order.price is not None:
+            return order.price >= best_order.price
+        if order.side == "SELL" and best_order.price is not None:
+            return order.price <= best_order.price
+        return False
 
     def _trade_volume(self, incoming_order, resting_order):
         return min(
@@ -16,20 +18,29 @@ class MatchEngine:
             resting_order.quantity - resting_order.filled_quantity,
         )
 
+    def _get_trade_price(self, best_order, order):
+        if order.type_order == "MKT":
+            return best_order.price
+        if best_order.type_order == "MKT":
+            return order.price
+        return best_order.price if order.side == "BUY" else order.price
+
     def match(self, order_book: OrderBook, order: Order):
         while order.filled_quantity < order.quantity:
-            best_order, book_side = order_book._get_opposite(order)
+            best_order, book_side = order_book.get_opposite(order)
 
             if not best_order or not self._price_match(order, best_order):
+                break
+
+            if order.type_order == "MKT" and best_order.type_order == "MKT":
                 break
 
             volume = self._trade_volume(order, best_order)
             order.filled_quantity += volume
             best_order.filled_quantity += volume
 
-            trade_price = (
-                best_order.price if best_order.type_order == "LMT" else order.price
-            )
+            trade_price = self._get_trade_price(best_order, order)
+
             order.execution_price = trade_price
             best_order.execution_price = trade_price
 
@@ -37,7 +48,7 @@ class MatchEngine:
             order.update_status()
 
             if best_order.status == "FILLED":
-                order_book._remove_order(book_side, best_order)
+                order_book.remove_order(book_side, best_order)
 
             order_book.last_price = trade_price
         order.update_status()
