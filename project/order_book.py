@@ -1,3 +1,6 @@
+from enums import Side
+
+
 class OrderBook:
     def __init__(self):
         self.bids = {}
@@ -5,7 +8,7 @@ class OrderBook:
         self.last_price = None
 
     def _get_book(self, side):
-        return self.bids if side == "BUY" else self.asks
+        return self.bids if side == Side.BUY else self.asks
 
     def add_order(self, order):
         price_key = order.price if order.price is not None else None
@@ -43,7 +46,7 @@ class OrderBook:
         return getattr(self, "last_best_ask", None)
 
     def get_opposite(self, order):
-        if order.side == "BUY":
+        if order.side == Side.BUY:
             return self.best_asks(), "SELL"
         return self.best_bids(), "BUY"
 

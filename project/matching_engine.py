@@ -1,14 +1,15 @@
 from order import Order
 from order_book import OrderBook
+from enums import Side, OrderType, OrderStatus
 
 
 class MatchEngine:
     def _price_match(self, order, best_order):
-        if order.type_order == "MKT" or best_order.type_order == "MKT":
+        if order.type_order == OrderType.MKT or best_order.type_order == OrderType.MKT:
             return True
-        if order.side == "BUY" and best_order.price is not None:
+        if order.side == Side.BUY and best_order.price is not None:
             return order.price >= best_order.price
-        if order.side == "SELL" and best_order.price is not None:
+        if order.side == Side.SELL and best_order.price is not None:
             return order.price <= best_order.price
         return False
 
@@ -19,11 +20,11 @@ class MatchEngine:
         )
 
     def _get_trade_price(self, best_order, order):
-        if order.type_order == "MKT":
+        if order.type_order == OrderType.MKT:
             return best_order.price
-        if best_order.type_order == "MKT":
+        if best_order.type_order == OrderType.MKT:
             return order.price
-        return best_order.price if order.side == "BUY" else order.price
+        return best_order.price if order.side == Side.BUY else order.price
 
     def match(self, order_book: OrderBook, order: Order):
         while order.filled_quantity < order.quantity:
@@ -32,7 +33,10 @@ class MatchEngine:
             if not best_order or not self._price_match(order, best_order):
                 break
 
-            if order.type_order == "MKT" and best_order.type_order == "MKT":
+            if (
+                order.type_order == OrderType.MKT
+                and best_order.type_order == OrderType.MKT
+            ):
                 break
 
             volume = self._trade_volume(order, best_order)
@@ -47,7 +51,7 @@ class MatchEngine:
             best_order.update_status()
             order.update_status()
 
-            if best_order.status == "FILLED":
+            if best_order.status == OrderStatus.FILLED:
                 order_book.remove_order(book_side, best_order)
 
             order_book.last_price = trade_price

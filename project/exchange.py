@@ -1,6 +1,7 @@
 from order import Order
 from order_book import OrderBook
 from matching_engine import MatchEngine
+from enums import Side, OrderType, OrderStatus
 
 COMMANDS = {"BUY", "SELL", "VIEW", "QUOTE", "QUIT", "BOOK"}
 
@@ -13,14 +14,21 @@ class StockExchange:
         self.engine = MatchEngine()
 
     def place_order(self, side, stock_name, type_order, price, quantity):
-        order = Order(self.next_order_id, side, stock_name, type_order, price, quantity)
+        order = Order(
+            id=self.next_order_id,
+            side=side,
+            stock_name=stock_name,
+            type_order=type_order,
+            price=price,
+            quantity=quantity,
+        )
         self.orders[self.next_order_id] = order
         if stock_name not in self.exchange:
             self.exchange[stock_name] = OrderBook()
         order_book = self.exchange[stock_name]
         self.engine.match(order_book, order)
 
-        if order.status != "FILLED":
+        if order.status != OrderStatus.FILLED:
             order_book.add_order(order)
 
         self.next_order_id += 1
@@ -51,14 +59,14 @@ class StockExchange:
             if len(parts) < 4:
                 return False, "Invalid command"
 
-            type_order = parts[2]
+            if parts[2] not in ("MKT", "LMT"):
+                return False, "Invalid order type, must be MKT or LMT"
+
             stock = parts[1]
             if not stock.isalpha() or not stock.isupper():
                 return False, "Stock name must be alphabetic and uppercase"
-            if type_order not in ("MKT", "LMT"):
-                return False, "Invalid order type, must be MKT or LMT"
 
-            if type_order == "MKT":
+            if parts[2] == "MKT":
                 if len(parts) != 4:
                     return (
                         False,
@@ -71,16 +79,14 @@ class StockExchange:
                 except ValueError:
                     return False, "Invalid quantity"
 
-            if type_order == "LMT":
+            if parts[2] == "LMT":
                 if len(parts) != 5:
                     return (
                         False,
                         "Limit order format: BUY|SELL <stock_name> LMT $<price> <quantity>",
                     )
                 try:
-                    price = float(parts[3].replace("$", ""))
-                    if price <= 0:
-                        return False, "Price must be a positive number"
+                    float(parts[3].replace("$", ""))
                 except ValueError:
                     return False, "Invalid price"
                 try:
@@ -95,23 +101,24 @@ class StockExchange:
         parts = command.split()
 
         if parts[0] in ("BUY", "SELL"):
+            side = Side(parts[0])
             stock_name = parts[1]
-            type_order = parts[2]
-            if type_order == "MKT":
+            type_order = OrderType(parts[2])
+            if type_order == OrderType.MKT:
                 price = None
                 quantity = int(parts[3])
             else:
-                price = float(parts[3][1:])
+                price = float(parts[3].replace("$", ""))
                 quantity = int(parts[4])
-            order = self.place_order(parts[0], stock_name, type_order, price, quantity)
+            order = self.place_order(side, stock_name, type_order, price, quantity)
             return order
 
         elif parts[0] == "VIEW":
-            print(self.get_orders())
+            return self.get_orders()
 
         elif parts[0] == "QUOTE":
             stock_name = parts[1]
-            print(self.quote(stock_name))
+            return self.quote(stock_name)
 
         elif parts[0] == "BOOK":
             stock_name = parts[1]
