@@ -21,7 +21,7 @@ class OrderBook:
         active_orders = [
             o
             for price in self.bids
-            if price is not None
+            # if price is not None
             for o in self.bids[price]
             if o.quantity - o.filled_quantity > 0
         ]
@@ -35,7 +35,7 @@ class OrderBook:
         active_orders = [
             o
             for price in self.asks
-            if price is not None
+            # if price is not None
             for o in self.asks[price]
             if o.quantity - o.filled_quantity > 0
         ]
@@ -47,12 +47,16 @@ class OrderBook:
 
     def get_opposite(self, order):
         if order.side == Side.BUY:
-            return self.best_asks(), "SELL"
-        return self.best_bids(), "BUY"
+            return self.best_asks(), Side.SELL
+        return self.best_bids(), Side.BUY
 
     def remove_order(self, side, order):
         price_key = order.price if order.price is not None else None
         book = self._get_book(side)
+        if price_key not in book:
+            return
+        if order not in book[price_key]:
+            return
         book[price_key].remove(order)
         if not book[price_key]:
             del book[price_key]

@@ -43,10 +43,10 @@ class Order:
             )
 
     def __repr__(self):
-        if self.execution_price is not None:
-            price_str = f" ${self.execution_price:.2f}"
-        elif self.type_order == OrderType.LMT:
+        if self.type_order == OrderType.LMT:
             price_str = f" ${self.price:.2f}"
+        elif self.execution_price is not None:
+            price_str = f" ${self.execution_price:.2f}"
         else:
             price_str = ""
         return (

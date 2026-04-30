@@ -40,6 +40,9 @@ class MatchEngine:
                 break
 
             volume = self._trade_volume(order, best_order)
+            if volume == 0:
+                break
+
             order.filled_quantity += volume
             best_order.filled_quantity += volume
 
