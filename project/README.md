@@ -49,4 +49,4 @@ QUIT
 #### Запуск программы
 
 ```bash
-python project/main.py
+python main.py
