@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass, field
-from enums import Side, OrderType, OrderStatus
+from project.enums import Side, OrderType, OrderStatus
 
 
 @dataclass
@@ -19,6 +19,15 @@ class Order:
     def __post_init__(self):
         if self.type_order == OrderType.MKT:
             self.price = None
+
+        if self.quantity <= 0:
+            raise ValueError("Quantity must be greater then 0")
+
+        if self.filled_quantity < 0:
+            raise ValueError("Filled quantity cannot be negative")
+
+        if self.filled_quantity > self.quantity:
+            raise ValueError("Filled quantity cannot exeed total quantity")
 
     def update_status(self):
         if self.filled_quantity == 0:
