@@ -1,5 +1,5 @@
-from project.order import Order
-from project.enums import Side, OrderType, OrderStatus
+from src.project.order import Order
+from src.project.enums import Side, OrderType, OrderStatus
 import pytest
 
 

@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass, field
-from project.enums import Side, OrderType, OrderStatus
+from src.project.enums import Side, OrderType, OrderStatus
 
 
 @dataclass

@@ -1,4 +1,4 @@
-from project.enums import Side
+from src.project.enums import Side
 
 
 class OrderBook:

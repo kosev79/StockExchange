@@ -1,7 +1,7 @@
-from project.order import Order
-from project.order_book import OrderBook
-from project.matching_engine import MatchEngine
-from project.enums import Side, OrderType, OrderStatus
+from src.project.order import Order
+from src.project.order_book import OrderBook
+from src.project.matching_engine import MatchEngine
+from src.project.enums import Side, OrderType, OrderStatus
 
 COMMANDS = {"BUY", "SELL", "VIEW", "QUOTE", "QUIT", "BOOK"}
 
@@ -26,10 +26,8 @@ class StockExchange:
         if stock_name not in self.exchange:
             self.exchange[stock_name] = OrderBook()
         order_book = self.exchange[stock_name]
+        order_book.add_order(order)
         self.engine.match(order_book, order)
-
-        if order.status != OrderStatus.FILLED:
-            order_book.add_order(order)
 
         self.next_order_id += 1
         return order
