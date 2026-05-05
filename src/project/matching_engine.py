@@ -1,6 +1,6 @@
-from src.project.order import Order
-from src.project.order_book import OrderBook
-from src.project.enums import Side, OrderType, OrderStatus
+from project.order import Order
+from project.order_book import OrderBook
+from project.enums import Side, OrderType, OrderStatus
 
 
 class MatchEngine:

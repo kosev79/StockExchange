@@ -1,7 +1,7 @@
-from src.project.order import Order
-from src.project.order_book import OrderBook
-from src.project.matching_engine import MatchEngine
-from src.project.enums import Side, OrderType, OrderStatus
+from project.order import Order
+from project.order_book import OrderBook
+from project.matching_engine import MatchEngine
+from project.enums import Side, OrderType, OrderStatus
 
 COMMANDS = {"BUY", "SELL", "VIEW", "QUOTE", "QUIT", "BOOK"}
 
@@ -131,8 +131,8 @@ class StockExchange:
     def quote(self, stock_name):
         if stock_name in self.exchange:
             order_book = self.exchange[stock_name]
-            best_bid = order_book.best_bids()
-            best_ask = order_book.best_asks()
+            best_bid = order_book.best_bid()
+            best_ask = order_book.best_ask()
             last_price = order_book.last_price
             bid_str = (
                 f"BID: ${best_bid.price:.2f}"

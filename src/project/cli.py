@@ -1,4 +1,4 @@
-from src.project.exchange import StockExchange
+from project.exchange import StockExchange
 
 
 def start_trading():
