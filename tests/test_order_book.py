@@ -1,4 +1,3 @@
-from project import order
 from project.order import Order
 from project.order_book import OrderBook
 from project.enums import Side, OrderType

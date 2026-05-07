@@ -1,7 +1,7 @@
 from project.order import Order
 from project.order_book import OrderBook
 from project.matching_engine import MatchEngine
-from project.enums import Side, OrderType, OrderStatus
+from project.enums import Side, OrderType
 
 COMMANDS = {"BUY", "SELL", "VIEW", "QUOTE", "QUIT", "BOOK"}
 

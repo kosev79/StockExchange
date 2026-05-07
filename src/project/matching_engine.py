@@ -56,6 +56,7 @@ class MatchEngine:
 
             if best_order.status == OrderStatus.FILLED:
                 order_book.remove_order(book_side, best_order)
+            if order.status == OrderStatus.FILLED:
+                order_book.remove_order(order.side, order)
 
             order_book.last_price = trade_price
-        order.update_status()
