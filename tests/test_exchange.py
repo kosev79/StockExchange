@@ -1,11 +1,3 @@
-from operator import le
-from smtplib import LMTP
-
-from project import exchange
-from project import order
-from project.order import Order
-from project.order_book import OrderBook
-from project.matching_engine import MatchEngine
 from project.exchange import StockExchange
 from project.enums import Side, OrderType, OrderStatus
 
